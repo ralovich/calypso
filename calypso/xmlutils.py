@@ -210,6 +210,9 @@ def propfind(path, xml_request, collection, depth):
 #                element.text = time.strftime("%a, %d %b %Y %H:%M:%S +0000", item.last_modified)
 #                element.text = email.utils.formatdate(item.last_modified)
                 element.text = email.utils.formatdate(time.mktime(item.last_modified))
+            elif tag in (_tag("A", "addressbook-description"),
+                         _tag("C", "calendar-description")) and is_collection:
+                element.text = collection.get_description()
             prop.append(element)
 
         status = ET.Element(_tag("D", "status"))
