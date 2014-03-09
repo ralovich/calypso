@@ -86,7 +86,7 @@ def delete(path, collection, context):
     return ET.tostring(multistatus, config.get("encoding", "request"))
 
 
-def propfind(path, xml_request, collection, depth):
+def propfind(path, xml_request, collection, depth, context):
     """Read and answer PROPFIND requests.
 
     Read rfc4918-9.1 for info.
@@ -213,6 +213,10 @@ def propfind(path, xml_request, collection, depth):
             elif tag in (_tag("A", "addressbook-description"),
                          _tag("C", "calendar-description")) and is_collection:
                 element.text = collection.get_description()
+            elif tag == _tag("D", "current-user-principal"):
+                tag = ET.Element(_tag("D", "href"))
+                tag.text = (config.get("server", "user_principal") % context)
+                element.append(tag)
             prop.append(element)
 
         status = ET.Element(_tag("D", "status"))

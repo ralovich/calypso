@@ -22,6 +22,9 @@ key = /etc/apache2/ssl/server.key
 # pidfile = /var/run/calypso.pid
 # base URL if / is not the CalDAV root
 base_prefix = /
+# current user principal; path to the default collection for a user
+# for clients that use it (RFC5397)
+user_principal = /+%(user)s/
 
 [encoding]
 # Encoding for responding requests
