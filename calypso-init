@@ -20,7 +20,7 @@ NAME=calypso
 DAEMON=/usr/bin/$NAME
 PIDFILE=/var/run/calypso/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
-CALYPSO_OPTS="-d -P $PIDFILE"
+CALYPSO_OPTS="-d -P $PIDFILE -H 127.0.0.1"
 
 # Exit if the package is not installed
 [ -x "$DAEMON" ] || exit 0
