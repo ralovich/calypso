@@ -190,10 +190,12 @@ def propfind(path, xml_request, collection, depth, context):
         for tag in props:
             element = ET.Element(tag)
             if tag == _tag("D", "resourcetype") and is_collection:
-                tag = ET.Element(_tag("C", "calendar"))
-                element.append(tag)
-                tag = ET.Element(_tag("A", "addressbook"))
-                element.append(tag)
+                if item.is_vcal:
+                    tag = ET.Element(_tag("C", "calendar"))
+                    element.append(tag)
+                if item.is_vcard:
+                    tag = ET.Element(_tag("A", "addressbook"))
+                    element.append(tag)
                 tag = ET.Element(_tag("D", "collection"))
                 element.append(tag)
             elif tag == _tag("D", "owner"):

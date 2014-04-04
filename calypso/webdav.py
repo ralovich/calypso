@@ -571,3 +571,11 @@ class Collection(object):
     @property
     def length(self):
         return "%d" % len(self.text)
+
+    @property
+    def is_vcard(self):
+        return len(self.items) and self.items[0].is_vcard
+
+    @property
+    def is_vcal(self):
+        return len(self.items) and self.items[0].is_vcal
