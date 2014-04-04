@@ -15,6 +15,9 @@ is-addressbook = False
 # Set this collection to personal, meaning that only its owner can access it.
 # Defaults to the personal setting in the Calypso configuration's acl section.
 personal = False
+# List of users that may access the resource independently of its owner or its
+# personal setting.
+allowed-users = john peter
 
 # Short name. Defaults to the collection's path.
 displayname = My Calendar

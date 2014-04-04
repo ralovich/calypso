@@ -43,7 +43,7 @@ import copy
 
 import ConfigParser
 
-from . import config, paths
+from . import config, paths, acl
 
 #
 # Recursive search for 'name' within 'vobject'
@@ -231,7 +231,7 @@ class CalypsoError(Exception):
     def __str__(self):
         return "%s: %s" % (self.reason, self.file)
 
-class Collection(object):
+class Collection(acl.Entity):
     """Internal collection class."""
 
     def get_description(self):
@@ -620,3 +620,9 @@ class Collection(object):
             return self.metadata.getboolean('collection', 'personal')
         except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, ValueError):
             return config.get('acl', 'personal')
+
+    def has_right(self, user):
+        try:
+            return user in self.metadata.get('collection', 'allowed-users').split()
+        except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, ValueError):
+            return super(Collection, self).has_right(user)

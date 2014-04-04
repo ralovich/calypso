@@ -35,7 +35,7 @@ SVC = config.get("acl", "pam_service")
 def has_right(entity, user, password):
     """Check if ``user``/``password`` couple is valid."""
     LOG.debug("entity %s user %s", entity, user)
-    if entity.owner and entity.owner != user and entity.personal:
+    if not entity.has_right(user):
         return False
     def pam_conv(auth, query_list, userData):
         result = []

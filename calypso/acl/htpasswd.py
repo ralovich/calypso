@@ -63,7 +63,7 @@ def has_right(entity, user, password):
     for line in open(FILENAME).readlines():
         if line.strip():
             login, hash_value = line.strip().split(":", 1)
-            if login == user and (not entity.personal or user == entity.owner):
+            if login == user and entity.has_right(user):
                 return CHECK_PASSWORD(hash_value, password)
     return False
 

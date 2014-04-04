@@ -34,3 +34,19 @@ def load():
     acl_type = config.get("acl", "type").encode("utf-8")
     module = __import__("calypso.acl", fromlist=[acl_type])
     return getattr(module, acl_type)
+
+class Entity(object):
+    """Interface for resources, uses to check them against an ACL."""
+
+    owner = None
+
+    def is_personal(self):
+        return True
+
+    def has_right(self, user):
+        """Return true if a given user may access the resource"""
+
+        # this implementation is always personal; non-collection resources are
+        # not expected to be accessed by different users.
+
+        return (user == self.owner if self.owner else True) if self.is_personal() else True

@@ -1,8 +1,8 @@
 import xml.etree.ElementTree as ET
-from . import config, paths
+from . import config, paths, acl
 from .xmlutils_generic import _tag
 
-class Resource(object):
+class Resource(acl.Entity):
     """Resources initially were pseudo-collections/items (so they could be
     included in the propfind loop), but currently are objects that represent
     resources on the server that are not collectons / collection items.
@@ -20,11 +20,6 @@ class Resource(object):
         return [self]
 
     urlpath = None # this should be present ... implement as abstract property?
-
-    owner = None # implement the interface for acls
-
-    def is_personal(self):
-        return True
 
 class Principal(Resource):
     def __init__(self, username):
