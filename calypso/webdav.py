@@ -41,6 +41,8 @@ import subprocess
 import urllib
 import copy
 
+import ConfigParser
+
 from . import config, paths
 
 #
@@ -234,6 +236,11 @@ class Collection(object):
 
     def get_description(self):
         try:
+            return str(self.metadata.get('collection', 'description'))
+        except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, ValueError):
+            pass
+
+        try:
             f = codecs.open(os.path.join(self.path, ".git/description"), encoding='utf-8')
         except IOError:
             # .git/description is not present eg when the complete server is a single git repo
@@ -265,12 +272,30 @@ class Collection(object):
         self.remove_file(path)
         self.insert_file(path)
 
+    __metadatafile = property(lambda self: os.path.join(self.path, ".calypso-collection"))
+
+    def scan_metadata(self, force):
+        try:
+            mtime = os.path.getmtime(self.__metadatafile)
+        except OSError:
+            mtime = 0
+            force = True
+
+        if not force and mtime == self.mtime and self.metadata is not None:
+            return
+
+        parser = ConfigParser.RawConfigParser()
+        parser.read(self.__metadatafile)
+        self.metadata = parser
+
     def scan_dir(self, force):
         try:
             mtime = os.path.getmtime(self.path)
         except OSError:
             mtime = 0
             force = True
+
+        self.scan_metadata(force)
 
         if not force and mtime == self.mtime:
             return
@@ -314,6 +339,8 @@ class Collection(object):
         self.mtime = 0
         self._ctag = ''
         self.etag = hashlib.sha1(self.path).hexdigest()
+        self.metadata = None
+        self.metadata_mtime = None
         self.scan_dir(False)
         self.tag = "Collection"
 
@@ -535,7 +562,10 @@ class Collection(object):
 
     def get_displayname(self):
         """Short viewable name."""
-        return self.urlpath.strip('/')
+        try:
+            return str(self.metadata.get('collection', 'displayname'))
+        except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, ValueError):
+            return self.urlpath.strip('/')
 
     @property
     def text(self):
@@ -573,8 +603,14 @@ class Collection(object):
 
     @property
     def is_vcard(self):
-        return len(self.items) and self.items[0].is_vcard
+        try:
+            return self.metadata.getboolean('collection', 'is-addressbook')
+        except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, ValueError):
+            return len(self.items) and self.items[0].is_vcard
 
     @property
     def is_vcal(self):
-        return len(self.items) and self.items[0].is_vcal
+        try:
+            return self.metadata.getboolean('collection', 'is-calendar')
+        except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, ValueError):
+            return len(self.items) and self.items[0].is_vcal

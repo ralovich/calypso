@@ -1,0 +1,21 @@
+# Per-collection config file for Calypso
+#
+# Name it .calypso-collection and place it into a collection to tune its
+# behavior; a typical location for it would be
+# ~/.config/calypso/calendars/private/test/.calypso-collection
+
+[collection]
+# Advertise this collection as a calendar. If this setting is absent, the
+# collection's content is inspected for a guess.
+is-calendar = 1
+# Advertise this collection as an address book. Behaves in analogy to
+# is-calendar.
+is-addressbook = 0
+
+# Short name. Defaults to the collection's path.
+displayname = My Calendar
+# Description used for the addressbook-description and calendar-description
+# WebDAV properties. Defaults to the collection's path.
+description = Collection of all my personal dates.
+
+# vim:ft=cfg
