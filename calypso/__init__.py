@@ -122,6 +122,13 @@ class HTTPSServer(HTTPServer):
         self.server_bind()
         self.server_activate()
 
+def collection_singleton(p):
+    path = paths.collection_from_path(p)
+    if not path:
+        return None
+    if not path in CollectionHTTPHandler.collections:
+        CollectionHTTPHandler.collections[path] = webdav.Collection(path)
+    return CollectionHTTPHandler.collections[path]
 
 class CollectionHTTPHandler(server.BaseHTTPRequestHandler):
     """HTTP requests handler for WebDAV collections."""
@@ -222,12 +229,7 @@ class CollectionHTTPHandler(server.BaseHTTPRequestHandler):
     @property
     def _collection(self):
         """The ``webdav.Collection`` object corresponding to the given path."""
-        path = paths.collection_from_path(self.path)
-        if not path:
-            return None
-        if not path in CollectionHTTPHandler.collections:
-            CollectionHTTPHandler.collections[path] = webdav.Collection(path)
-        return CollectionHTTPHandler.collections[path]
+        return collection_singleton(self.path)
 
     def _decode(self, text):
         """Try to decode text according to various parameters."""

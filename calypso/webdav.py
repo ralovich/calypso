@@ -305,7 +305,7 @@ class Collection(object):
         
         self.log = logging.getLogger(__name__)
         self.encoding = "utf-8"
-        self.urlpath = path
+        self.urlpath = "/" if path == "/" else path + "/" # a collections's path always end with / as recommended in rfc4918 as suggestion
         self.owner = paths.url_to_owner(path)
         self.path = paths.url_to_file(path)
         self.pattern = os.path.join(self.path, "*")
