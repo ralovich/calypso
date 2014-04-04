@@ -31,12 +31,11 @@ from calypso import config
 
 LOG = logging.getLogger()
 SVC = config.get("acl", "pam_service")
-PERSONAL = config.getboolean("acl", "personal")
 
 def has_right(entity, user, password):
     """Check if ``user``/``password`` couple is valid."""
     LOG.debug("entity %s user %s", entity, user)
-    if entity.owner and entity.owner != user and PERSONAL:
+    if entity.owner and entity.owner != user and entity.personal:
         return False
     def pam_conv(auth, query_list, userData):
         result = []

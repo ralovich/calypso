@@ -7,10 +7,14 @@
 [collection]
 # Advertise this collection as a calendar. If this setting is absent, the
 # collection's content is inspected for a guess.
-is-calendar = 1
+is-calendar = True
 # Advertise this collection as an address book. Behaves in analogy to
 # is-calendar.
-is-addressbook = 0
+is-addressbook = False
+
+# Set this collection to personal, meaning that only its owner can access it.
+# Defaults to the personal setting in the Calypso configuration's acl section.
+personal = False
 
 # Short name. Defaults to the collection's path.
 displayname = My Calendar

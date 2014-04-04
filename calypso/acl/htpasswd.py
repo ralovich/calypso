@@ -63,11 +63,10 @@ def has_right(entity, user, password):
     for line in open(FILENAME).readlines():
         if line.strip():
             login, hash_value = line.strip().split(":", 1)
-            if login == user and (not PERSONAL or user == entity.owner):
+            if login == user and (not entity.personal or user == entity.owner):
                 return CHECK_PASSWORD(hash_value, password)
     return False
 
 
 FILENAME = os.path.expanduser(config.get("acl", "filename"))
-PERSONAL = config.getboolean("acl", "personal")
 CHECK_PASSWORD = locals()["_%s" % config.get("acl", "encryption")]

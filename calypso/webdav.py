@@ -614,3 +614,9 @@ class Collection(object):
             return self.metadata.getboolean('collection', 'is-calendar')
         except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, ValueError):
             return len(self.items) and self.items[0].is_vcal
+
+    def is_personal(self):
+        try:
+            return self.metadata.getboolean('collection', 'personal')
+        except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, ValueError):
+            return config.get('acl', 'personal')

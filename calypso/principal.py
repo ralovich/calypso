@@ -23,6 +23,9 @@ class Resource(object):
 
     owner = None # implement the interface for acls
 
+    def is_personal(self):
+        return True
+
 class Principal(Resource):
     def __init__(self, username):
         self.username = username
