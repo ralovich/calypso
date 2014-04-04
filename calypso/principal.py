@@ -14,7 +14,7 @@ class Resource(object):
         """If self can respond to a propfind request on a tag, update the
         prepared response element with child nodes."""
 
-    def propfind_children(self, depth):
+    def propfind_children(self, depth, context):
         """Return a list of resources / collections / items that are to be
         responded with to a propfind of a given depth"""
         return [self]
@@ -25,6 +25,8 @@ class Principal(Resource):
     def __init__(self, username):
         self.username = username
         self.urlpath = config.get("server", "user_principal") % {"user": self.username} # it's currently hardcoded anyway
+
+    owner = property(lambda self: self.username)
 
     def propfind(self, tag, element):
         super(Principal, self).propfind(tag, element)
@@ -46,7 +48,9 @@ class HomeSet(Resource):
         self.username = username
         self.urlpath = config.get("server", "user_principal") % {"user": self.username} + self.type_dependent_suffix + "/" # it's currently hardcoded anyway
 
-    def propfind_children(self, depth):
+    owner = property(lambda self: self.username)
+
+    def propfind_children(self, depth, context):
         # FIXME ignoring depth
 
         collection_name = paths.collection_from_path(self.username + "/" + self.single_collection)

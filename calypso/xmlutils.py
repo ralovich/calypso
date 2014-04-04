@@ -75,35 +75,7 @@ def delete(path, collection, context):
 
     return ET.tostring(multistatus, config.get("encoding", "request"))
 
-def identify_resource(path):
-    """Return a Resource object corresponding to the path (this is used for
-    everything that is not a collection, like Principal and HomeSet objects)"""
-
-    try:
-        left, right = config.get('server', 'user_principal').split('%(user)s')
-    except ValueError:
-        raise ValueError("user_principal setting must contain %(user)s.")
-
-    if not path.startswith(left):
-        return None
-
-    remainder = path[len(left):]
-    if right not in remainder:
-        return None
-
-    username = remainder[:remainder.index(right)]
-    remainder = remainder[remainder.index(right)+len(right):]
-
-    if remainder == principal.AddressbookHomeSet.type_dependent_suffix + "/":
-        return principal.AddressbookHomeSet(username)
-    elif remainder == principal.CalendarHomeSet.type_dependent_suffix + "/":
-        return principal.CalendarHomeSet(username)
-    elif remainder == "":
-        return principal.Principal(username)
-    else:
-        return None
-
-def propfind(path, xml_request, collection, depth, context):
+def propfind(path, xml_request, collection, resource, depth, context):
     """Read and answer PROPFIND requests.
 
     Read rfc4918-9.1 for info.
@@ -135,10 +107,8 @@ def propfind(path, xml_request, collection, depth, context):
     # Writing answer
     multistatus = ET.Element(_tag("D", "multistatus"))
 
-    resource = identify_resource(path)
-
     if resource is not None:
-        items = resource.propfind_children(depth)
+        items = resource.propfind_children(depth, context)
     elif collection:
         if item_name:
             item = collection.get_item(item_name)
