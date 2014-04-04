@@ -180,7 +180,7 @@ def propfind(path, xml_request, collection, resource, depth, context):
             elif tag == _tag("D", "getetag"):
                 element.text = item.etag
             elif tag == _tag("D", "displayname") and is_collection:
-                element.text = collection.name
+                element.text = item.get_displayname()
             elif tag == _tag("D", "principal-URL"):
                 # TODO: use a real principal URL, read rfc3744-4.2 for info
                 tag = ET.Element(_tag("D", "href"))
