@@ -131,14 +131,6 @@ def propfind(path, xml_request, collection, resource, depth, context):
         is_collection = isinstance(item, webdav.Collection)
         is_resource = isinstance(item, principal.Resource)
 
-        if is_collection:
-            # parentcollectionhack. this is not the way to do it, but much of
-            # the below code relies on items which are collection members to
-            # have their parent collection in the collection variable. get rid
-            # of the collection propfind-global variable, and this and all
-            # other occurrences of "parentcollectionhack" can be dropped.
-            collection = item
-
         response = ET.Element(_tag("D", "response"))
         multistatus.append(response)
 
@@ -218,7 +210,7 @@ def propfind(path, xml_request, collection, resource, depth, context):
                 element.text = email.utils.formatdate(time.mktime(item.last_modified))
             elif tag in (_tag("A", "addressbook-description"),
                          _tag("C", "calendar-description")) and is_collection:
-                element.text = collection.get_description()
+                element.text = item.get_description()
             elif tag == _tag("D", "current-user-principal"):
                 tag = ET.Element(_tag("D", "href"))
                 tag.text = config.get("server", "user_principal") % context
