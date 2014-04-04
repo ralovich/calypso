@@ -1,0 +1,28 @@
+# Per-collection config file for Calypso
+#
+# Name it .calypso-collection and place it into a collection to tune its
+# behavior; a typical location for it would be
+# ~/.config/calypso/calendars/private/test/.calypso-collection
+
+[collection]
+# Advertise this collection as a calendar. If this setting is absent, the
+# collection's content is inspected for a guess.
+is-calendar = True
+# Advertise this collection as an address book. Behaves in analogy to
+# is-calendar.
+is-addressbook = False
+
+# Set this collection to personal, meaning that only its owner can access it.
+# Defaults to the personal setting in the Calypso configuration's acl section.
+personal = False
+# List of users that may access the resource independently of its owner or its
+# personal setting.
+allowed-users = john peter
+
+# Short name. Defaults to the collection's path.
+displayname = My Calendar
+# Description used for the addressbook-description and calendar-description
+# WebDAV properties. Defaults to the collection's path.
+description = Collection of all my personal dates.
+
+# vim:ft=cfg

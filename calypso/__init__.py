@@ -43,6 +43,7 @@ import email.utils
 import logging
 import rfc822
 import ssl
+import functools
 
 # Manage Python2/3 different modules
 # pylint: disable=F0401
@@ -76,14 +77,15 @@ def _check(request, function):
     else:
         user = password = None
 
-    owner = None
-    if request._collection:
-        owner = request._collection.owner
+    entity = request._resource or request._collection or None
+
+    # bound privilege checker that can be used by principals etc in discovery too
+    has_right = functools.partial(request.server.acl.has_right, user=user, password=password)
 
     # Also send UNAUTHORIZED if there's no collection. Otherwise one
     # could probe the server for (non-)existing collections.
-    if request.server.acl.has_right(owner, user, password):
-        function(request, context={"user": user, "user-agent": request.headers.get("User-Agent", None)})
+    if has_right(entity):
+        function(request, context={"user": user, "user-agent": request.headers.get("User-Agent", None), "has_right": has_right})
     else:
         request.send_calypso_response(client.UNAUTHORIZED, 0)
         request.send_header(
@@ -122,6 +124,41 @@ class HTTPSServer(HTTPServer):
         self.server_bind()
         self.server_activate()
 
+def collection_singleton(p):
+    path = paths.collection_from_path(p)
+    if not path:
+        return None
+    if not path in CollectionHTTPHandler.collections:
+        CollectionHTTPHandler.collections[path] = webdav.Collection(path)
+    return CollectionHTTPHandler.collections[path]
+
+def identify_resource(path):
+    """Return a Resource object corresponding to the path (this is used for
+    everything that is not a collection, like Principal and HomeSet objects)"""
+
+    try:
+        left, right = config.get('server', 'user_principal').split('%(user)s')
+    except ValueError:
+        raise ValueError("user_principal setting must contain %(user)s.")
+
+    if not path.startswith(left):
+        return None
+
+    remainder = path[len(left):]
+    if right not in remainder:
+        return None
+
+    username = remainder[:remainder.index(right)]
+    remainder = remainder[remainder.index(right)+len(right):]
+
+    if remainder == principal.AddressbookHomeSet.type_dependent_suffix + "/":
+        return principal.AddressbookHomeSet(username)
+    elif remainder == principal.CalendarHomeSet.type_dependent_suffix + "/":
+        return principal.CalendarHomeSet(username)
+    elif remainder == "":
+        return principal.Principal(username)
+    else:
+        return None
 
 class CollectionHTTPHandler(server.BaseHTTPRequestHandler):
     """HTTP requests handler for WebDAV collections."""
@@ -222,12 +259,11 @@ class CollectionHTTPHandler(server.BaseHTTPRequestHandler):
     @property
     def _collection(self):
         """The ``webdav.Collection`` object corresponding to the given path."""
-        path = paths.collection_from_path(self.path)
-        if not path:
-            return None
-        if not path in CollectionHTTPHandler.collections:
-            CollectionHTTPHandler.collections[path] = webdav.Collection(path)
-        return CollectionHTTPHandler.collections[path]
+        return collection_singleton(self.path)
+
+    @property
+    def _resource(self):
+        return identify_resource(self.path)
 
     def _decode(self, text):
         """Try to decode text according to various parameters."""
@@ -377,7 +413,7 @@ class CollectionHTTPHandler(server.BaseHTTPRequestHandler):
             xml_request = self.xml_request
             log.debug("PROPFIND %s", xml_request)
             self._answer = xmlutils.propfind(
-                self.path, xml_request, self._collection,
+                self.path, xml_request, self._collection, self._resource,
                 self.headers.get("depth", "infinity"),
                 context)
             log.debug("PROPFIND ANSWER %s", self._answer)

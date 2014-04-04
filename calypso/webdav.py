@@ -41,7 +41,9 @@ import subprocess
 import urllib
 import copy
 
-from . import config, paths
+import ConfigParser
+
+from . import config, paths, acl
 
 #
 # Recursive search for 'name' within 'vobject'
@@ -229,15 +231,21 @@ class CalypsoError(Exception):
     def __str__(self):
         return "%s: %s" % (self.reason, self.file)
 
-class Collection(object):
+class Collection(acl.Entity):
     """Internal collection class."""
 
     def get_description(self):
-        f = codecs.open(os.path.join(self.path, ".git/description"), encoding='utf-8')
         try:
-            return f.read()
-        finally:
-            f.close()
+            return str(self.metadata.get('collection', 'description'))
+        except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, ValueError):
+            pass
+
+        try:
+            f = codecs.open(os.path.join(self.path, ".git/description"), encoding='utf-8')
+        except IOError:
+            # .git/description is not present eg when the complete server is a single git repo
+            return self.urlpath
+        return f.read()
 
     def read_file(self, path):
         text = codecs.open(path,encoding='utf-8').read()
@@ -264,12 +272,30 @@ class Collection(object):
         self.remove_file(path)
         self.insert_file(path)
 
+    __metadatafile = property(lambda self: os.path.join(self.path, ".calypso-collection"))
+
+    def scan_metadata(self, force):
+        try:
+            mtime = os.path.getmtime(self.__metadatafile)
+        except OSError:
+            mtime = 0
+            force = True
+
+        if not force and mtime == self.mtime and self.metadata is not None:
+            return
+
+        parser = ConfigParser.RawConfigParser()
+        parser.read(self.__metadatafile)
+        self.metadata = parser
+
     def scan_dir(self, force):
         try:
             mtime = os.path.getmtime(self.path)
         except OSError:
             mtime = 0
             force = True
+
+        self.scan_metadata(force)
 
         if not force and mtime == self.mtime:
             return
@@ -304,6 +330,7 @@ class Collection(object):
         
         self.log = logging.getLogger(__name__)
         self.encoding = "utf-8"
+        self.urlpath = "/" if path == "/" else path + "/" # a collections's path always end with / as recommended in rfc4918 as suggestion
         self.owner = paths.url_to_owner(path)
         self.path = paths.url_to_file(path)
         self.pattern = os.path.join(self.path, "*")
@@ -312,14 +339,16 @@ class Collection(object):
         self.mtime = 0
         self._ctag = ''
         self.etag = hashlib.sha1(self.path).hexdigest()
+        self.metadata = None
+        self.metadata_mtime = None
         self.scan_dir(False)
         self.tag = "Collection"
 
     def __str__(self):
-        return "Calendar-%s (at %s)" % (self.name, self.path)
+        return "Calendar-%s (at %s)" % (self.urlpath, self.path)
 
     def __repr__(self):
-        return "<Calendar %s>" % (self.name)
+        return "<Calendar %s>" % (self.urlpath)
         
     def has_git(self):
         return True
@@ -531,10 +560,12 @@ class Collection(object):
         """Ctag from collection."""
         return self._ctag
 
-    @property
-    def name(self):
-        """Collection name."""
-        return self.path.split(os.path.sep)[-1]
+    def get_displayname(self):
+        """Short viewable name."""
+        try:
+            return str(self.metadata.get('collection', 'displayname'))
+        except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, ValueError):
+            return self.urlpath.strip('/')
 
     @property
     def text(self):
@@ -569,3 +600,29 @@ class Collection(object):
     @property
     def length(self):
         return "%d" % len(self.text)
+
+    @property
+    def is_vcard(self):
+        try:
+            return self.metadata.getboolean('collection', 'is-addressbook')
+        except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, ValueError):
+            return len(self.items) and self.items[0].is_vcard
+
+    @property
+    def is_vcal(self):
+        try:
+            return self.metadata.getboolean('collection', 'is-calendar')
+        except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, ValueError):
+            return len(self.items) and self.items[0].is_vcal
+
+    def is_personal(self):
+        try:
+            return self.metadata.getboolean('collection', 'personal')
+        except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, ValueError):
+            return config.get('acl', 'personal')
+
+    def has_right(self, user):
+        try:
+            return user in self.metadata.get('collection', 'allowed-users').split()
+        except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, ValueError):
+            return super(Collection, self).has_right(user)

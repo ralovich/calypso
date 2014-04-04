@@ -57,17 +57,16 @@ def _sha1(hash_value, password):
     return sha1.digest() == base64.b64decode(hash_value)
 
 
-def has_right(owner, user, password):
+def has_right(entity, user, password):
     """Check if ``user``/``password`` couple is valid."""
-    log.debug("owner %s user %s", owner, user)
+    log.debug("entity %s user %s", entity, user)
     for line in open(FILENAME).readlines():
         if line.strip():
             login, hash_value = line.strip().split(":", 1)
-            if login == user and (not PERSONAL or user == owner):
+            if login == user and entity.has_right(user):
                 return CHECK_PASSWORD(hash_value, password)
     return False
 
 
 FILENAME = os.path.expanduser(config.get("acl", "filename"))
-PERSONAL = config.getboolean("acl", "personal")
 CHECK_PASSWORD = locals()["_%s" % config.get("acl", "encryption")]

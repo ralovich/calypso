@@ -40,22 +40,12 @@ import logging
 import urllib
 import os.path
 
-from . import client, config, webdav, paths
+from . import client, config, webdav, paths, principal
+from .xmlutils_generic import _tag
 
 __package__ = 'calypso.xmlutils'
 
-NAMESPACES = {
-    "C": "urn:ietf:params:xml:ns:caldav",
-    "A": "urn:ietf:params:xml:ns:carddav",
-    "D": "DAV:",
-    "CS": "http://calendarserver.org/ns/"}
-
 log = logging.getLogger(__name__)
-
-def _tag(short_name, local):
-    """Get XML Clark notation {uri(``short_name``)}``local``."""
-    return "{%s}%s" % (NAMESPACES[short_name], local)
-
 
 def _response(code):
     """Return full W3C names from HTTP status codes."""
@@ -85,8 +75,7 @@ def delete(path, collection, context):
 
     return ET.tostring(multistatus, config.get("encoding", "request"))
 
-
-def propfind(path, xml_request, collection, depth, context):
+def propfind(path, xml_request, collection, resource, depth, context):
     """Read and answer PROPFIND requests.
 
     Read rfc4918-9.1 for info.
@@ -94,7 +83,6 @@ def propfind(path, xml_request, collection, depth, context):
     """
 
     item_name = paths.resource_from_path(path)
-    collection_name = paths.collection_from_path(path)
 
     # Reading request
     root = ET.fromstring(xml_request)
@@ -119,7 +107,9 @@ def propfind(path, xml_request, collection, depth, context):
     # Writing answer
     multistatus = ET.Element(_tag("D", "multistatus"))
 
-    if collection:
+    if resource is not None:
+        items = resource.propfind_children(depth, context)
+    elif collection:
         if item_name:
             item = collection.get_item(item_name)
             print "item_name %s item %s" % (item_name, item)
@@ -139,12 +129,18 @@ def propfind(path, xml_request, collection, depth, context):
 
     for item in items:
         is_collection = isinstance(item, webdav.Collection)
+        is_resource = isinstance(item, principal.Resource)
 
         response = ET.Element(_tag("D", "response"))
         multistatus.append(response)
 
         href = ET.Element(_tag("D", "href"))
-        href.text = collection_name if is_collection else "/".join([collection_name, item.name])
+        if is_collection:
+            href.text = item.urlpath
+        elif is_resource:
+            href.text = item.urlpath
+        else:
+            href.text = collection.urlpath + item.name
         response.append(href)
 
         propstat = ET.Element(_tag("D", "propstat"))
@@ -156,10 +152,12 @@ def propfind(path, xml_request, collection, depth, context):
         for tag in props:
             element = ET.Element(tag)
             if tag == _tag("D", "resourcetype") and is_collection:
-                tag = ET.Element(_tag("C", "calendar"))
-                element.append(tag)
-                tag = ET.Element(_tag("A", "addressbook"))
-                element.append(tag)
+                if item.is_vcal:
+                    tag = ET.Element(_tag("C", "calendar"))
+                    element.append(tag)
+                if item.is_vcard:
+                    tag = ET.Element(_tag("A", "addressbook"))
+                    element.append(tag)
                 tag = ET.Element(_tag("D", "collection"))
                 element.append(tag)
             elif tag == _tag("D", "owner"):
@@ -174,7 +172,7 @@ def propfind(path, xml_request, collection, depth, context):
             elif tag == _tag("D", "getetag"):
                 element.text = item.etag
             elif tag == _tag("D", "displayname") and is_collection:
-                element.text = collection.name
+                element.text = item.get_displayname()
             elif tag == _tag("D", "principal-URL"):
                 # TODO: use a real principal URL, read rfc3744-4.2 for info
                 tag = ET.Element(_tag("D", "href"))
@@ -183,8 +181,8 @@ def propfind(path, xml_request, collection, depth, context):
             elif tag in (
                 _tag("D", "principal-collection-set"),
                 _tag("C", "calendar-user-address-set"),
-                _tag("C", "calendar-home-set"),
-                _tag("A", "addressbook-home-set")):
+                ):
+                # not meaningfully implemented yet
                 tag = ET.Element(_tag("D", "href"))
                 tag.text = path
                 element.append(tag)
@@ -212,11 +210,13 @@ def propfind(path, xml_request, collection, depth, context):
                 element.text = email.utils.formatdate(time.mktime(item.last_modified))
             elif tag in (_tag("A", "addressbook-description"),
                          _tag("C", "calendar-description")) and is_collection:
-                element.text = collection.get_description()
+                element.text = item.get_description()
             elif tag == _tag("D", "current-user-principal"):
                 tag = ET.Element(_tag("D", "href"))
-                tag.text = (config.get("server", "user_principal") % context)
+                tag.text = config.get("server", "user_principal") % context
                 element.append(tag)
+            elif isinstance(item, principal.Resource):
+                item.propfind(tag, element)
             prop.append(element)
 
         status = ET.Element(_tag("D", "status"))
@@ -368,6 +368,8 @@ def report(path, xml_request, collection):
                 if tag == _tag("D", "getetag"):
                     element.text = item.etag
                 elif tag == _tag("C", "calendar-data"):
+                    element.text = item.text
+                elif tag == _tag("A", "address-data"):
                     element.text = item.text
                 prop.append(element)
 
