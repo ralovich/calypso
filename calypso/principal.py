@@ -21,6 +21,8 @@ class Resource(object):
 
     urlpath = None # this should be present ... implement as abstract property?
 
+    owner = None # implement the interface for acls
+
 class Principal(Resource):
     def __init__(self, username):
         self.username = username
@@ -53,7 +55,7 @@ class HomeSet(Resource):
     def propfind_children(self, depth, context):
         # FIXME ignoring depth
 
-        items = [c for c in paths.enumerate_collections() if self.is_in_set(c) and context['has_right'](c.owner)]
+        items = [c for c in paths.enumerate_collections() if self.is_in_set(c) and context['has_right'](c)]
         return super(HomeSet, self).propfind_children(depth, context) + items
 
 class AddressbookHomeSet(HomeSet):

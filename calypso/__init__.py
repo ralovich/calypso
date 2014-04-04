@@ -77,18 +77,14 @@ def _check(request, function):
     else:
         user = password = None
 
-    owner = None
-    if request._resource:
-        owner = request._resource.owner
-    elif request._collection:
-        owner = request._collection.owner
+    entity = request._resource or request._collection or None
 
     # bound privilege checker that can be used by principals etc in discovery too
     has_right = functools.partial(request.server.acl.has_right, user=user, password=password)
 
     # Also send UNAUTHORIZED if there's no collection. Otherwise one
     # could probe the server for (non-)existing collections.
-    if has_right(owner):
+    if has_right(entity):
         function(request, context={"user": user, "user-agent": request.headers.get("User-Agent", None), "has_right": has_right})
     else:
         request.send_calypso_response(client.UNAUTHORIZED, 0)

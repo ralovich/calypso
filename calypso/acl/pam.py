@@ -33,10 +33,10 @@ LOG = logging.getLogger()
 SVC = config.get("acl", "pam_service")
 PERSONAL = config.getboolean("acl", "personal")
 
-def has_right(owner, user, password):
+def has_right(entity, user, password):
     """Check if ``user``/``password`` couple is valid."""
-    LOG.debug("owner %s user %s", owner, user)
-    if owner and owner != user and PERSONAL:
+    LOG.debug("entity %s user %s", entity, user)
+    if entity.owner and entity.owner != user and PERSONAL:
         return False
     def pam_conv(auth, query_list, userData):
         result = []
