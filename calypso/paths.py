@@ -86,6 +86,22 @@ def is_collection(url):
             return False
         urlpath, stripped = os.path.split(urlpath)
 
+def enumerate_collection_paths():
+    """List the url paths that can be accessed as collections."""
+
+    for root, dirs, files in os.walk(data_root()):
+        relative = root[len(data_root())+1:]
+        if any(p.startswith('.') for p in relative.split('/')):
+            continue
+        urlpath = base_prefix() + "/" + relative
+        if is_collection(urlpath):
+            yield urlpath
+
+def enumerate_collections():
+    from calypso import collection_singleton
+    for p in enumerate_collection_paths():
+        yield collection_singleton(p)
+
 #
 # Given a URL, return the parent URL by stripping off
 # the last path element

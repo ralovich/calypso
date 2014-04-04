@@ -53,17 +53,17 @@ class HomeSet(Resource):
     def propfind_children(self, depth, context):
         # FIXME ignoring depth
 
-        collection_name = paths.collection_from_path(self.username + "/" + self.single_collection)
-        from calypso import collection_singleton
-        collection = collection_singleton(collection_name)
-        items = [collection] # + collection.items # FIXME sequence matters, see parentcollectionhack
-        return super(HomeSet, self).propfind_children(depth) + items
+        items = [c for c in paths.enumerate_collections() if self.is_in_set(c) and context['has_right'](c.owner)]
+        return super(HomeSet, self).propfind_children(depth, context) + items
 
 class AddressbookHomeSet(HomeSet):
     type_dependent_suffix = "addressbooks"
-    single_collection = "addresses"
+
+    def is_in_set(self, collection):
+        return collection.is_vcard
 
 class CalendarHomeSet(HomeSet):
     type_dependent_suffix = "calendars"
-    single_collection = "calendar"
 
+    def is_in_set(self, collection):
+        return collection.is_vcal
