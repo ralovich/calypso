@@ -100,7 +100,9 @@ def enumerate_collection_paths():
 def enumerate_collections():
     from calypso import collection_singleton
     for p in enumerate_collection_paths():
-        yield collection_singleton(p)
+        c = collection_singleton(p)
+        c.scan_metadata(False)
+        yield c
 
 #
 # Given a URL, return the parent URL by stripping off
