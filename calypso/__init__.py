@@ -85,7 +85,13 @@ def _check(request, function):
     # Also send UNAUTHORIZED if there's no collection. Otherwise one
     # could probe the server for (non-)existing collections.
     if has_right(entity):
-        function(request, context={"user": user, "user-agent": request.headers.get("User-Agent", None), "has_right": has_right})
+        function(request, context={
+            "user": user,
+            "user-agent": request.headers.get("User-Agent", None),
+            "x-client": request.headers.get("X-client", None),
+            "origin": request.headers.get("Origin", None),
+            "has_right": has_right
+            })
     else:
         request.send_calypso_response(client.UNAUTHORIZED, 0)
         request.send_header(
@@ -189,6 +195,9 @@ class CollectionHTTPHandler(server.BaseHTTPRequestHandler):
         self.send_response(response)
         self.send_connection_header()
         self.send_header("Content-Length", length)
+        for header, value in config.items('headers'):
+            self.send_header(header, value)
+
 
     def handle_one_request(self):
         """Handle a single HTTP request.
@@ -396,8 +405,7 @@ class CollectionHTTPHandler(server.BaseHTTPRequestHandler):
         self.send_calypso_response(client.CREATED, 0)
         self.end_headers()
 
-    @check_rights
-    def do_OPTIONS(self, context):
+    def do_OPTIONS(self):
         """Manage OPTIONS request."""
         self.send_calypso_response(client.OK, 0)
         self.send_header(
