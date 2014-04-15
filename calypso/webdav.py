@@ -357,7 +357,7 @@ class Collection(acl.Entity):
         args = ["git", "commit", "--allow-empty"]
         env = {}
 
-        message = context.get('action', 'other action')
+        message = context.get('action', 'other action') + "\n\n"
 
         if "user" in context:
             # use environment variables instead of --author to avoid git
@@ -368,14 +368,14 @@ class Collection(acl.Entity):
             # information explicitly in the config file. (slicing it in after
             # the git command as position is important with git arguments)
             args[1:1] = ["-c", "advice.implicitIdentity=false"]
-        if "user-agent" in context:
-            message += u"\n\nUser-Agent: %r"%context['user-agent']
-        if "x-client" in context:
-            message += u"\n\nX-Client: %r"%context['x-client'] # set by web clients like carddavmate / caldavzap
-        if "origin" in context:
-            message += u"\n\nOrigin: %r"%context['origin'] # set by everything that does CORS XHR
+        if context['user-agent']:
+            message += u"User-Agent: %r\n"%context['user-agent']
+        if context['x-client']:
+            message += u"X-Client: %r\n"%context['x-client'] # set by web clients like carddavmate / caldavzap
+        if context['origin']:
+            message += u"Origin: %r\n"%context['origin'] # set by everything that does CORS XHR
 
-        args.extend(["-m", message.encode('utf8')])
+        args.extend(["-m", message.encode('utf8').rstrip("\n") + "\n"])
 
         subprocess.check_call(args, cwd=self.path, env=env)
 
