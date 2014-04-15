@@ -370,6 +370,10 @@ class Collection(acl.Entity):
             args[1:1] = ["-c", "advice.implicitIdentity=false"]
         if "user-agent" in context:
             message += u"\n\nUser-Agent: %r"%context['user-agent']
+        if "x-client" in context:
+            message += u"\n\nX-Client: %r"%context['x-client'] # set by web clients like carddavmate / caldavzap
+        if "origin" in context:
+            message += u"\n\nOrigin: %r"%context['origin'] # set by everything that does CORS XHR
 
         args.extend(["-m", message.encode('utf8')])
 

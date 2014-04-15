@@ -85,7 +85,13 @@ def _check(request, function):
     # Also send UNAUTHORIZED if there's no collection. Otherwise one
     # could probe the server for (non-)existing collections.
     if has_right(entity):
-        function(request, context={"user": user, "user-agent": request.headers.get("User-Agent", None), "has_right": has_right})
+        function(request, context={
+            "user": user,
+            "user-agent": request.headers.get("User-Agent", None),
+            "x-client": request.headers.get("X-client", None),
+            "origin": request.headers.get("Origin", None),
+            "has_right": has_right
+            })
     else:
         request.send_calypso_response(client.UNAUTHORIZED, 0)
         request.send_header(
