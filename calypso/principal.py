@@ -19,7 +19,24 @@ class Resource(acl.Entity):
         responded with to a propfind of a given depth"""
         return [self]
 
+    def do_get_head(self, request, context, is_get):
+        """Handle an incoming GET or HEAD request. See
+        CollectionHTTPHandler.do_get_head for what this usually should do."""
+        request.send_calypso_response(404, 0)
+        request.end_headers()
+
     urlpath = None # this should be present ... implement as abstract property?
+
+class WellKnownDav(Resource):
+    def has_right(self, user):
+        return True
+
+    def do_get_head(self, request, context, is_get):
+        """According to RFC6764, redirect to a context path (from where
+        current-user-principal can be discovered)"""
+        request.send_calypso_response(303, 0)
+        request.send_header("Location", "/")
+        request.end_headers()
 
 class Principal(Resource):
     def __init__(self, username):

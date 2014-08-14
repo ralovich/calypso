@@ -142,6 +142,9 @@ def identify_resource(path):
     """Return a Resource object corresponding to the path (this is used for
     everything that is not a collection, like Principal and HomeSet objects)"""
 
+    if path in ("/.well-known/carddav", "/.well-known/caldav"):
+        return principal.WellKnownDav()
+
     try:
         left, right = config.get('server', 'user_principal').split('%(user)s')
     except ValueError:
@@ -334,6 +337,9 @@ class CollectionHTTPHandler(server.BaseHTTPRequestHandler):
                 if is_get:
                     answer_text = self._collection.text
                 etag = self._collection.etag
+            elif self._resource:
+                self._resource.do_get_head(self, context, is_get)
+                return
             else:
                 self.send_calypso_response(client.NOT_FOUND, 0)
                 self.end_headers()
